@@ -275,8 +275,8 @@ void starkware_print_vault_id(uint32_t vaultId, char *destination) {
     snprintf(destination, 10, "%d", vaultId);
 }
 
-void starkware_print_stark_key(uint8_t *starkKey, char *destination) {
-    snprintf(destination, 70, "0x%.*H", 32, starkKey);
+void starkware_print_stark_key(uint8_t *starkKey, char *destination, size_t destinationLength) {
+    format_hex_string(destination, destinationLength, starkKey, 32);
 }
 
 // TODO : rewrite as independant code
@@ -743,7 +743,7 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_WITHDRAW_NFT:
                         case STARKWARE_WITHDRAW_NFT_TO:
                             strlcpy(msg->title, "Master Account", msg->titleLength);
-                            starkware_print_stark_key(context->starkKey, msg->msg);
+                            starkware_print_stark_key(context->starkKey, msg->msg, msg->msgLength);
                             break;
                         default:
                             PRINTF("Unexpected screen %d for %d\n",
@@ -760,7 +760,7 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:
                         case STARKWARE_REGISTER_AND_DEPOSIT_ETH:
                             strlcpy(msg->title, "Master Account", msg->titleLength);
-                            starkware_print_stark_key(context->starkKey, msg->msg);
+                            starkware_print_stark_key(context->starkKey, msg->msg, msg->msgLength);
                             break;
 
                         case STARKWARE_DEPOSIT_TOKEN:
@@ -856,7 +856,9 @@ void starkware_plugin_call(int message, void *parameters) {
                         case STARKWARE_DEPOSIT_NFT:
                         case STARKWARE_DEPOSIT_NFT_RECLAIM:
                             strlcpy(msg->title, "TokenID", msg->titleLength);
-                            starkware_print_stark_key(dataContext.tokenContext.quantum, msg->msg);
+                            starkware_print_stark_key(dataContext.tokenContext.quantum,
+                                                      msg->msg,
+                                                      msg->msgLength);
                             break;
 
                         case STARKWARE_REGISTER_AND_DEPOSIT_TOKEN:

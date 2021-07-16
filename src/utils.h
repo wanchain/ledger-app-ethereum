@@ -22,7 +22,9 @@
 
 #include "uint256.h"
 
-void array_hexstr(char* strbuf, const void* bin, unsigned int len);
+void array_hexstr(char* strbuf, const void* bin, size_t len);
+
+int format_hex_string(char* out, size_t out_len, const uint8_t* in, size_t in_len);
 
 void convertUint256BE(uint8_t* data, uint32_t length, uint256_t* target);
 

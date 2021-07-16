@@ -24,16 +24,29 @@
 #include "tokens.h"
 #include "utils.h"
 
-static const unsigned char hex_digits[] =
+static const char hex_digits[] =
     {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9', 'A', 'B', 'C', 'D', 'E', 'F'};
 
-void array_hexstr(char *strbuf, const void *bin, unsigned int len) {
+void array_hexstr(char *strbuf, const void *bin, size_t len) {
+    const uint8_t *p = bin;
     while (len--) {
-        *strbuf++ = hex_digits[((*((char *) bin)) >> 4) & 0xF];
-        *strbuf++ = hex_digits[(*((char *) bin)) & 0xF];
-        bin = (const void *) ((unsigned int) bin + 1);
+        *strbuf++ = hex_digits[*p >> 4];
+        *strbuf++ = hex_digits[*p & 0xF];
+        p++;
     }
     *strbuf = 0;  // EOS
+}
+
+#define HEX_PREFIX      "0x"
+#define HEX_PREFIX_SIZE (sizeof(HEX_PREFIX) - 1)
+
+int format_hex_string(char *out, size_t out_len, const uint8_t *in, size_t in_len) {
+    if (out_len < HEX_PREFIX_SIZE + 2 * in_len + 1) {
+        return -1;
+    }
+    strlcpy(out, HEX_PREFIX, out_len);
+    array_hexstr(out + HEX_PREFIX_SIZE, in, in_len);
+    return 0;
 }
 
 void convertUint256BE(uint8_t *data, uint32_t length, uint256_t *target) {
