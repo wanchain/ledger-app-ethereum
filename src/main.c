@@ -811,6 +811,7 @@ struct libargs_s {
         create_transaction_parameters_t *create_transaction;
         get_printable_amount_parameters_t *get_printable_amount;
     };
+    unsigned int lib_interface_version;
 };
 
 static void library_main_helper(struct libargs_s *args) {
@@ -870,7 +871,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
 #ifdef USE_LIB_ETHEREUM
     BEGIN_TRY {
         TRY {
-            unsigned int libcall_params[5];
+            unsigned int libcall_params[6];
             chain_config_t local_chainConfig;
             init_coin_config(&local_chainConfig);
             PRINTF("Hello from Eth-clone\n");
@@ -881,6 +882,7 @@ __attribute__((section(".boot"))) int main(int arg0) {
             libcall_params[2] = RUN_APPLICATION;
             libcall_params[3] = (unsigned int) &local_chainConfig;
             libcall_params[4] = 0;
+            libcall_params[5] = LIB_INTERFACE_VERSION;
             if (arg0) {
                 // call as a library
                 libcall_params[2] = ((unsigned int *) arg0)[1];
@@ -920,6 +922,9 @@ __attribute__((section(".boot"))) int main(int arg0) {
     switch (args->command) {
         case RUN_APPLICATION:
             // called as ethereum from altcoin or plugin
+            if(args->lib_interface_version != LIB_INTERFACE_VERSION){
+                app_exit();
+            }
             coin_main(args->chain_config);
             break;
         default:
