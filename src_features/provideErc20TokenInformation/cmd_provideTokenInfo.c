@@ -3,6 +3,27 @@
 #include "ui_flow.h"
 #include "tokens.h"
 
+static void verify_signature(uint8_t *hash, uint8_t *signature, size_t signature_size) {
+    cx_ecfp_public_key_t tokenKey;
+
+    cx_ecfp_init_public_key(CX_CURVE_256K1,
+                            LEDGER_SIGNATURE_PUBLIC_KEY,
+                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
+                            &tokenKey);
+    if (!cx_ecdsa_verify(&tokenKey,
+                         CX_LAST,
+                         CX_SHA256,
+                         hash,
+                         32,
+                         signature,
+                         signature_size)) {
+#ifndef HAVE_BYPASS_SIGNATURES
+        PRINTF("Invalid token signature\n");
+        THROW(0x6A80);
+#endif
+    }
+}
+
 #ifdef HAVE_CONTRACT_NAME_IN_DESCRIPTOR
 
 void handleProvideErc20TokenInformation(uint8_t p1,
@@ -19,7 +40,6 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     uint32_t chainId;
     uint8_t hash[INT256_LENGTH];
     cx_sha256_t sha256;
-    cx_ecfp_public_key_t tokenKey;
 
     cx_sha256_init(&sha256);
 
@@ -77,27 +97,31 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     }
     offset += 4;
     dataLength -= 4;
-    cx_ecfp_init_public_key(CX_CURVE_256K1,
-                            LEDGER_SIGNATURE_PUBLIC_KEY,
-                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                            &tokenKey);
-    if (!cx_ecdsa_verify(&tokenKey,
-                         CX_LAST,
-                         CX_SHA256,
-                         hash,
-                         32,
-                         workBuffer + offset,
-                         dataLength)) {
-#ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid token signature\n");
-        THROW(0x6A80);
-#endif
-    }
+
+    verify_signature(hash, workBuffer + offset, dataLength);
+
     tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
     THROW(0x9000);
 }
 
 #else
+
+static tokenDefinition_t *whitelisted_descriptor(tokenDefinition_t *token) {
+#ifdef HAVE_TOKENS_EXTRA_LIST
+    uint32_t index;
+    for (index = 0; index < NUM_TOKENS_EXTRA; index++) {
+        tokenDefinition_t *currentToken = (tokenDefinition_t *) PIC(&TOKENS_EXTRA[index]);
+        if (memcmp(currentToken->address, token->address, 20) == 0) {
+            PRINTF("Descriptor whitelisted\n");
+            return currentToken;
+        }
+    }
+#else
+    UNUSED(token);
+#endif
+
+    return NULL;
+}
 
 void handleProvideErc20TokenInformation(uint8_t p1,
                                         uint8_t p2,
@@ -112,7 +136,6 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     uint8_t tickerLength;
     uint32_t chainId;
     uint8_t hash[INT256_LENGTH];
-    cx_ecfp_public_key_t tokenKey;
 
     tmpCtx.transactionContext.currentItemIndex =
         (tmpCtx.transactionContext.currentItemIndex + 1) % MAX_ITEMS;
@@ -152,57 +175,13 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     offset += 4;
     dataLength -= 4;
 
-#ifdef HAVE_TOKENS_EXTRA_LIST
-    tokenDefinition_t *currentToken = NULL;
-    uint32_t index;
-    for (index = 0; index < NUM_TOKENS_EXTRA; index++) {
-        currentToken = (tokenDefinition_t *) PIC(&TOKENS_EXTRA[index]);
-        if (memcmp(currentToken->address, token->address, 20) == 0) {
-            strcpy((char *) token->ticker, (char *) currentToken->ticker);
-            token->decimals = currentToken->decimals;
-            break;
-        }
-    }
-    if (index < NUM_TOKENS_EXTRA) {
-        PRINTF("Descriptor whitelisted\n");
+    tokenDefinition_t *whiteListedToken = whitelisted_descriptor(token);
+    if (whiteListedToken == NULL) {
+        verify_signature(hash, workBuffer + offset, dataLength);
     } else {
-        cx_ecfp_init_public_key(CX_CURVE_256K1,
-                                LEDGER_SIGNATURE_PUBLIC_KEY,
-                                sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                                &tokenKey);
-        if (!cx_ecdsa_verify(&tokenKey,
-                             CX_LAST,
-                             CX_SHA256,
-                             hash,
-                             32,
-                             workBuffer + offset,
-                             dataLength)) {
-#ifndef HAVE_BYPASS_SIGNATURES
-            PRINTF("Invalid token signature\n");
-            THROW(0x6A80);
-#endif
-        }
+        strcpy((char *) token->ticker, (char *) whiteListedToken->ticker);
+        token->decimals = whiteListedToken->decimals;
     }
-
-#else
-
-    cx_ecfp_init_public_key(CX_CURVE_256K1,
-                            LEDGER_SIGNATURE_PUBLIC_KEY,
-                            sizeof(LEDGER_SIGNATURE_PUBLIC_KEY),
-                            &tokenKey);
-    if (!cx_ecdsa_verify(&tokenKey,
-                         CX_LAST,
-                         CX_SHA256,
-                         hash,
-                         32,
-                         workBuffer + offset,
-                         dataLength)) {
-#ifndef HAVE_BYPASS_SIGNATURES
-        PRINTF("Invalid token signature\n");
-        THROW(0x6A80);
-#endif
-    }
-#endif
 
     tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
     THROW(0x9000);
