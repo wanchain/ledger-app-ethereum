@@ -388,7 +388,7 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
 #endif
     //
     for (uint8_t i = 0; i < MAX_ITEMS; i++) {
-        currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
+        currentItem = &tmpCtx.transactionContext.extraInfo[i];
         if (tmpCtx.transactionContext.tokenSet[i] &&
             (memcmp(currentItem->token.address, contractAddress, ADDRESS_LENGTH) == 0)) {
             PRINTF("Token found at index %d\n", i);
@@ -397,7 +397,7 @@ extraInfo_t *getKnownToken(uint8_t *contractAddress) {
     }
 
     for (uint8_t i = 0; i < MAX_ITEMS; i++) {
-        currentItem = (union extraInfo_t *) &tmpCtx.transactionContext.extraInfo[i].token;
+        currentItem = &tmpCtx.transactionContext.extraInfo[i];
         if (tmpCtx.transactionContext.tokenSet[i] &&
             (memcmp(currentItem->nft.contractAddress, contractAddress, ADDRESS_LENGTH) == 0)) {
             PRINTF("Token found at index %d\n", i);
