@@ -8,6 +8,7 @@
 #include "ui_plugin.h"
 #include "common_ui.h"
 #include "plugins.h"
+#include "domain_name.h"
 
 // clang-format off
 UX_STEP_NOCB(
@@ -199,6 +200,7 @@ UX_STEP_NOCB(ux_approval_blind_signing_warning_step,
 // clang-format on
 
 const ux_flow_step_t *ux_approval_tx_flow[15];
+extern const ux_flow_step_t ux_domain_name_step;
 
 void ux_approve_tx(bool fromPlugin) {
     int step = 0;
@@ -217,7 +219,19 @@ void ux_approve_tx(bool fromPlugin) {
     } else {
         // We're in a regular transaction, just show the amount and the address
         ux_approval_tx_flow[step++] = &ux_approval_amount_step;
-        ux_approval_tx_flow[step++] = &ux_approval_address_step;
+#ifdef HAVE_DOMAIN_NAME
+        uint64_t chain_id = get_chain_id();
+        if (verify_domain_name(&chain_id, tmpContent.txContent.destination)) {
+            ux_approval_tx_flow[step++] = &ux_domain_name_step;
+            if (N_storage.verbose_domain_name) {
+                ux_approval_tx_flow[step++] = &ux_approval_address_step;
+            }
+        } else {
+#endif  // HAVE_DOMAIN_NAME
+            ux_approval_tx_flow[step++] = &ux_approval_address_step;
+#ifdef HAVE_DOMAIN_NAME
+        }
+#endif  // HAVE_DOMAIN_NAME
     }
 
     if (N_storage.displayNonce) {
