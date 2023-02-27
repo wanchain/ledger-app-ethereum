@@ -2,12 +2,45 @@ from enum import IntEnum, auto
 from typing import Optional
 from ragger.backend import BackendInterface
 from ragger.utils import RAPDU
+from ragger.navigator import NavInsID, NavIns, NanoNavigator
 from app.command_builder import EthereumCmdBuilder
 from app.setting import SettingType, SettingImpl
 from app.eip712 import EIP712FieldType
 from app.response_parser import EthereumRespParser
 import signal
 import time
+from pathlib import Path
+import keychain
+
+
+ROOT_SCREENSHOT_PATH = Path(__file__).parent.parent
+
+class   DOMAIN_NAME_TAG(IntEnum):
+    STRUCTURE_TYPE = 0x01
+    STRUCTURE_VERSION = 0x02
+    CHALLENGE = 0x12
+    SIGNER_KEY_ID = 0x13
+    SIGNER_ALGO = 0x14
+    SIGNATURE = 0x15
+    DOMAIN_NAME = 0x20
+    COIN_TYPE = 0x21
+    ADDRESS = 0x22
+
+def format_tlv(tag: int, value) -> bytes:
+    if isinstance(value, int):
+        value = value.to_bytes((value.bit_length() + 7) // 8, 'big')
+    elif isinstance(value, str):
+        value = value.encode()
+
+    if not isinstance(value, bytes):
+        print("Unhandled TLV formatting for type : %s" % (type(value)))
+        return None
+
+    tlv = bytearray()
+    tlv.append(tag)
+    tlv.append(len(value))
+    tlv += value
+    return tlv
 
 
 class   EthereumClient:
@@ -21,6 +54,9 @@ class   EthereumClient:
         SettingType.NONCE: SettingImpl(
             [ "nanos", "nanox", "nanosp" ]
         ),
+        SettingType.VERBOSE_ENS: SettingImpl(
+            [ "nanox", "nanosp" ]
+        ),
         SettingType.VERBOSE_EIP712: SettingImpl(
             [ "nanox", "nanosp" ]
         )
@@ -28,10 +64,12 @@ class   EthereumClient:
     _click_delay = 1/4
     _eip712_filtering = False
 
-    def __init__(self, client: BackendInterface):
+    def __init__(self, client: BackendInterface, golden_run: bool):
         self._client = client
+        self._chain_id = 1
         self._cmd_builder = EthereumCmdBuilder()
         self._resp_parser = EthereumRespParser()
+        self._nav = NanoNavigator(client, client.firmware, golden_run)
         signal.signal(signal.SIGALRM, self._click_signal_timeout)
         for setting in self._settings.values():
             setting.value = False
@@ -156,3 +194,57 @@ class   EthereumClient:
         with self._send(self._cmd_builder.eip712_filtering_show_field(name, sig)):
             pass
         assert self._recv().status == 0x9000
+
+    def send_fund(self,
+                  bip32_path: list[Optional[int]],
+                  nonce: int,
+                  gas_price: int,
+                  gas_limit: int,
+                  to: bytes,
+                  amount: float,
+                  chain_id: int,
+                  screenshot_collection: str = None):
+        for chunk in self._cmd_builder.send_fund(bip32_path,
+                                                 nonce,
+                                                 gas_price,
+                                                 gas_limit,
+                                                 to,
+                                                 amount,
+                                                 chain_id):
+            with self._send(chunk):
+                nav_ins = NavIns(NavInsID.RIGHT_CLICK)
+                final_ins = [ NavIns(NavInsID.BOTH_CLICK) ]
+                target_text = "and send"
+                if screenshot_collection:
+                    self._nav.navigate_until_text_and_compare(nav_ins,
+                                                              final_ins,
+                                                              target_text,
+                                                              ROOT_SCREENSHOT_PATH,
+                                                              screenshot_collection)
+                else:
+                    self._nav.navigate_until_text(nav_ins,
+                                                  final_ins,
+                                                  target_text)
+            assert self._recv().status == 0x9000
+
+    def get_challenge(self) -> int:
+        with self._send(self._cmd_builder.get_challenge()):
+            pass
+        resp = self._recv()
+        return self._resp_parser.challenge(resp.data)
+
+    def provide_domain_name(self, challenge: int, name: str, addr: bytes):
+        payload  = format_tlv(DOMAIN_NAME_TAG.STRUCTURE_TYPE, 3) # TrustedDomainName
+        payload += format_tlv(DOMAIN_NAME_TAG.STRUCTURE_VERSION, 1)
+        payload += format_tlv(DOMAIN_NAME_TAG.SIGNER_KEY_ID, 0) # test key
+        payload += format_tlv(DOMAIN_NAME_TAG.SIGNER_ALGO, 1) # secp256k1
+        payload += format_tlv(DOMAIN_NAME_TAG.CHALLENGE, challenge)
+        payload += format_tlv(DOMAIN_NAME_TAG.COIN_TYPE, 0x3c) # ETH in slip-44
+        payload += format_tlv(DOMAIN_NAME_TAG.DOMAIN_NAME, name)
+        payload += format_tlv(DOMAIN_NAME_TAG.ADDRESS, addr)
+        payload += format_tlv(DOMAIN_NAME_TAG.SIGNATURE,
+                              keychain.sign_data(keychain.Key.DOMAIN_NAME, payload))
+
+        for chunk in self._cmd_builder.provide_domain_name(payload):
+            with self._send(chunk):
+                pass
