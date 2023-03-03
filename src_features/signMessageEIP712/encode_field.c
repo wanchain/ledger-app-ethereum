@@ -27,7 +27,7 @@ static void *field_encode(const uint8_t *const value,
 
     if (length > EIP_712_ENCODED_FIELD_LENGTH)  // sanity check
     {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return NULL;
     }
     if ((padded_value = mem_alloc(EIP_712_ENCODED_FIELD_LENGTH)) != NULL) {
@@ -41,12 +41,12 @@ static void *field_encode(const uint8_t *const value,
                 start_idx = 0;
                 break;
             default:
-                apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+                apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
                 return NULL;  // should not be here
         }
         memcpy(&padded_value[start_idx], value, length);
     } else {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_sw = APDU_SW_INSUFFICIENT_MEMORY;
     }
     return padded_value;
 }
@@ -75,7 +75,7 @@ void *encode_int(const uint8_t *const value, uint8_t length, uint8_t typesize) {
     uint8_t padding_value;
 
     if (length < 1) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return NULL;
     }
 
@@ -111,7 +111,7 @@ void *encode_bytes(const uint8_t *const value, uint8_t length) {
 void *encode_boolean(const bool *const value, uint8_t length) {
     if (length != 1)  // sanity check
     {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return NULL;
     }
     return encode_uint((uint8_t *) value, length);
@@ -127,7 +127,7 @@ void *encode_boolean(const bool *const value, uint8_t length) {
 void *encode_address(const uint8_t *const value, uint8_t length) {
     if (length != ADDRESS_LENGTH)  // sanity check
     {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return NULL;
     }
     return encode_uint(value, length);

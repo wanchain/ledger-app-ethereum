@@ -105,7 +105,7 @@ void handleSetPlugin(uint8_t p1,
         PRINTF("Data too small for headers: expected at least %d, got %d\n",
                HEADER_SIZE,
                dataLength);
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     enum Type type = workBuffer[offset];
@@ -115,7 +115,7 @@ void handleSetPlugin(uint8_t p1,
             break;
         default:
             PRINTF("Unsupported type %d\n", type);
-            THROW(0x6a80);
+            THROW(APDU_SW_INVALID_DATA);
             break;
     }
     offset += TYPE_SIZE;
@@ -127,7 +127,7 @@ void handleSetPlugin(uint8_t p1,
             break;
         default:
             PRINTF("Unsupported version %d\n", version);
-            THROW(0x6a80);
+            THROW(APDU_SW_INVALID_DATA);
             break;
     }
     offset += VERSION_SIZE;
@@ -142,7 +142,7 @@ void handleSetPlugin(uint8_t p1,
         PRINTF("Data too small for payload: expected at least %d, got %d\n",
                payloadSize,
                dataLength);
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     // `+ 1` because we want to add a null terminating character.
@@ -150,7 +150,7 @@ void handleSetPlugin(uint8_t p1,
         PRINTF("plugin name too big: expected max %d, got %d\n",
                sizeof(dataContext.tokenContext.pluginName),
                pluginNameLength + 1);
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     // Safe because we've checked the size before.
@@ -175,7 +175,7 @@ void handleSetPlugin(uint8_t p1,
     PRINTF("ChainID: %.*H\n", sizeof(chainId), (workBuffer + offset));
     if ((chainConfig->chainId != 0) && (chainConfig->chainId != chainId)) {
         PRINTF("Chain ID token mismatch\n");
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     offset += CHAIN_ID_SIZE;
 
@@ -194,7 +194,7 @@ void handleSetPlugin(uint8_t p1,
             break;
         default:
             PRINTF("KeyID %d not supported\n", keyId);
-            THROW(0x6A80);
+            THROW(APDU_SW_INVALID_DATA);
             break;
     }
 
@@ -215,7 +215,7 @@ void handleSetPlugin(uint8_t p1,
             break;
         default:
             PRINTF("Incorrect algorithmId %d\n", algorithmId);
-            THROW(0x6a80);
+            THROW(APDU_SW_INVALID_DATA);
             break;
     }
     offset += ALGORITHM_ID_SIZE;
@@ -224,7 +224,7 @@ void handleSetPlugin(uint8_t p1,
 
     if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE) {
         PRINTF("Data too short to hold signature length\n");
-        THROW(0x6a80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     uint8_t signatureLen = workBuffer[offset];
@@ -234,13 +234,13 @@ void handleSetPlugin(uint8_t p1,
                MIN_DER_SIG_SIZE,
                MAX_DER_SIG_SIZE,
                signatureLen);
-        THROW(0x6a80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     offset += SIGNATURE_LENGTH_SIZE;
 
     if (dataLength < payloadSize + SIGNATURE_LENGTH_SIZE + signatureLen) {
         PRINTF("Signature could not fit in data\n");
-        THROW(0x6a80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     cx_ecfp_init_public_key(curve, rawKey, rawKeyLen, &pluginKey);
@@ -253,7 +253,7 @@ void handleSetPlugin(uint8_t p1,
                         signatureLen)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid NFT signature\n");
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
 #endif
     }
 
@@ -261,7 +261,7 @@ void handleSetPlugin(uint8_t p1,
     if (keyId == PROD_PLUGIN_KEY) {
         if (pluginType != ERC721 && pluginType != ERC1155) {
             PRINTF("AWS key must only be used to set NFT internal plugins\n");
-            THROW(0x6A80);
+            THROW(APDU_SW_INVALID_DATA);
         }
     }
 

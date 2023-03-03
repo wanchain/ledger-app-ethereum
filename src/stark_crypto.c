@@ -4,6 +4,7 @@
 #include "stark_utils.h"
 #include "utils.h"
 #include "ethUtils.h"
+#include "apdu_constants.h"
 
 extraInfo_t *getKnownToken(uint8_t *contractAddress);
 
@@ -22,7 +23,7 @@ void starkDerivePrivateKey(uint32_t *bip32Path, uint32_t bip32PathLength, uint8_
   // Sanity check
   if (bip32Path[0] != STARK_BIP32_PATH_0)  {
     PRINTF("Invalid Stark derivation path %d\n", bip32Path[0]);
-    THROW(0x6a80);
+    THROW(APDU_SW_INVALID_DATA);
   }
   os_perso_derive_node_bip32(CX_CURVE_256K1, bip32Path, bip32PathLength, privateKeyData, NULL);
   PRINTF("Private key before processing %.*H\n", 32, privateKeyData);
@@ -36,7 +37,7 @@ void starkDerivePrivateKey(uint32_t *bip32Path, uint32_t bip32PathLength, uint8_
     if ((bip32PathLength < 2) || (bip32Path[0] != STARK_BIP32_PATH_0) ||
         (bip32Path[1] != STARK_BIP32_PATH_1)) {
         PRINTF("Invalid Stark derivation path %d %d\n", bip32Path[0], bip32Path[1]);
-        THROW(0x6a80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     os_perso_derive_node_bip32(CX_CURVE_256K1, bip32Path, bip32PathLength, tmp, NULL);
     PRINTF("Private key before processing %.*H\n", 32, tmp);
@@ -72,7 +73,7 @@ void stark_get_amount_string(uint8_t *contractAddress,
     } else {
         tokenDefinition_t *token = &getKnownToken(contractAddress)->token;
         if (token == NULL) {  // caught earlier
-            THROW(0x6A80);
+            THROW(APDU_SW_INVALID_DATA);
         }
         decimals = token->decimals;
         ticker = (char *) token->ticker;

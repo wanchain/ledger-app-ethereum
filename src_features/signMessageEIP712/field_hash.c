@@ -26,7 +26,7 @@ static s_field_hashing *fh = NULL;
 bool field_hash_init(void) {
     if (fh == NULL) {
         if ((fh = MEM_ALLOC_AND_ALIGN_TYPE(*fh)) == NULL) {
-            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+            apdu_response_sw = APDU_SW_INSUFFICIENT_MEMORY;
             return false;
         }
         fh->state = FHS_IDLE;
@@ -101,7 +101,7 @@ static const uint8_t *field_hash_finalize_static(const void *const field_ptr,
             break;
         case TYPE_CUSTOM:
         default:
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_sw = APDU_SW_INVALID_DATA;
             PRINTF("Unknown solidity type!\n");
     }
 
@@ -123,7 +123,7 @@ static uint8_t *field_hash_finalize_dynamic(void) {
     uint8_t *value;
 
     if ((value = mem_alloc(KECCAK256_HASH_BYTESIZE)) == NULL) {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_sw = APDU_SW_INSUFFICIENT_MEMORY;
         return NULL;
     }
     // copy hash into memory
@@ -175,7 +175,7 @@ static bool field_hash_domain_special_fields(const void *const field_ptr,
     // copy contract address into context
     if (strncmp(key, "verifyingContract", keylen) == 0) {
         if (data_length != sizeof(eip712_context->contract_addr)) {
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_sw = APDU_SW_INVALID_DATA;
             PRINTF("Unexpected verifyingContract length!\n");
             return false;
         }
@@ -237,7 +237,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     e_type field_type;
 
     if ((fh == NULL) || ((field_ptr = path_get_field()) == NULL)) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
         return false;
     }
 
@@ -245,14 +245,14 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     if (fh->state == FHS_IDLE)  // first packet for this frame
     {
         if (data_length < 2) {
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_sw = APDU_SW_INVALID_DATA;
             return false;
         }
 
         data = field_hash_prepare(field_ptr, data, &data_length);
     }
     if (data_length > fh->remaining_size) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return false;
     }
     fh->remaining_size -= data_length;
@@ -263,7 +263,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     if (fh->remaining_size == 0) {
         if (partial)  // only makes sense if marked as complete
         {
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_sw = APDU_SW_INVALID_DATA;
             return false;
         }
         if (field_hash_finalize(field_ptr, data, data_length) == false) {
@@ -272,7 +272,7 @@ bool field_hash(const uint8_t *data, uint8_t data_length, bool partial) {
     } else {
         if (!partial || !IS_DYN(field_type))  // only makes sense if marked as partial
         {
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_sw = APDU_SW_INVALID_DATA;
             return false;
         }
         handle_eip712_return_code(true);

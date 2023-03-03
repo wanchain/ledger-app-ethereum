@@ -29,7 +29,7 @@ void handleStarkwareProvideQuantum(uint8_t p1,
             expectedDataSize += 32;
             break;
         default:
-            THROW(0x6B00);
+            THROW(APDU_SW_INVALID_P1_P2);
     }
     if (dataLength != expectedDataSize) {
         THROW(0x6700);
@@ -47,7 +47,7 @@ void handleStarkwareProvideQuantum(uint8_t p1,
         }
         if (i == MAX_ITEMS) {
             PRINTF("Associated token not found\n");
-            THROW(0x6A80);
+            THROW(APDU_SW_INVALID_DATA);
         }
     } else {
         i = MAX_ITEMS;
@@ -59,7 +59,7 @@ void handleStarkwareProvideQuantum(uint8_t p1,
     dataContext.tokenContext.quantumIndex = i;
     dataContext.tokenContext.quantumType = p1;
     quantumSet = true;
-    THROW(0x9000);
+    THROW(APDU_SW_OK);
 }
 
 #endif

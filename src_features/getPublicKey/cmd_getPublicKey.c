@@ -21,16 +21,16 @@ void handleGetPublicKey(uint8_t p1,
     }
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        THROW(0x6B00);
+        THROW(APDU_SW_INVALID_P1_P2);
     }
     if ((p2 != P2_CHAINCODE) && (p2 != P2_NO_CHAINCODE)) {
-        THROW(0x6B00);
+        THROW(APDU_SW_INVALID_P1_P2);
     }
 
     dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
 
     if (dataBuffer == NULL) {
-        THROW(0x6a80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     tmpCtx.publicKeyContext.getChaincode = (p2 == P2_CHAINCODE);
@@ -56,7 +56,7 @@ void handleGetPublicKey(uint8_t p1,
 #endif  // NO_CONSENT
     {
         *tx = set_result_get_publicKey();
-        THROW(0x9000);
+        THROW(APDU_SW_OK);
     }
 #ifndef NO_CONSENT
     else {

@@ -24,5 +24,5 @@ void handleGetAppConfiguration(uint8_t p1,
     G_io_apdu_buffer[2] = LEDGER_MINOR_VERSION;
     G_io_apdu_buffer[3] = LEDGER_PATCH_VERSION;
     *tx = 4;
-    THROW(0x9000);
+    THROW(APDU_SW_OK);
 }

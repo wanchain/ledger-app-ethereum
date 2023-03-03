@@ -30,9 +30,7 @@ uint32_t get_challenge(void) {
 void handle_get_challenge(void) {
     PRINTF("RANDOM DATA -> %u\n", get_challenge());
     U4BE_ENCODE(G_io_apdu_buffer, 0, get_challenge());
-    U2BE_ENCODE(G_io_apdu_buffer, 4, APDU_RESPONSE_OK);
-
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 6);
+    send_apdu_response(true, sizeof(challenge));
 }
 
 #endif  // HAVE_DOMAIN_NAME

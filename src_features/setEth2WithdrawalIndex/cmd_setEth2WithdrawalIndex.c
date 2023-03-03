@@ -14,12 +14,12 @@ void handleSetEth2WithdrawalIndex(uint8_t p1,
     }
 
     if ((p1 != 0) || (p2 != 0)) {
-        THROW(0x6B00);
+        THROW(APDU_SW_INVALID_P1_P2);
     }
 
     eth2WithdrawalIndex = U4BE(dataBuffer, 0);
 
-    THROW(0x9000);
+    THROW(APDU_SW_OK);
 }
 
 #endif

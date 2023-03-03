@@ -9,6 +9,7 @@
 #include "ethUtils.h"
 #include "common_ui.h"
 #include "ui_callbacks.h"
+#include "apdu_constants.h"
 
 #define ERR_SILENT_MODE_CHECK_FAILED 0x6001
 
@@ -193,9 +194,9 @@ void compareOrCopy(char *preapproved_string, size_t size, char *parsed_string, b
 void reportFinalizeError(bool direct) {
     reset_app_context();
     if (direct) {
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     } else {
-        io_seproxyhal_send_status(0x6A80);
+        send_apdu_response_explicit(APDU_SW_INVALID_DATA, 0);
         ui_idle();
     }
 }

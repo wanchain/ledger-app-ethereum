@@ -143,7 +143,7 @@ static const void **get_struct_dependencies(uint8_t *const deps_count,
             if (dep_idx == *deps_count) {
                 *deps_count += 1;
                 if ((new_dep = MEM_ALLOC_AND_ALIGN_TYPE(void *)) == NULL) {
-                    apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+                    apdu_response_sw = APDU_SW_INSUFFICIENT_MEMORY;
                     return NULL;
                 }
                 if (*deps_count == 1) {

@@ -20,17 +20,17 @@ void handleStarkwareGetPublicKey(uint8_t p1,
     reset_app_context();
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        THROW(0x6B00);
+        THROW(APDU_SW_INVALID_P1_P2);
     }
 
     if (p2 != 0) {
-        THROW(0x6B00);
+        THROW(APDU_SW_INVALID_P1_P2);
     }
 
     dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
 
     if (dataBuffer == NULL) {
-        THROW(0x6a80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     io_seproxyhal_io_heartbeat();
@@ -46,7 +46,7 @@ void handleStarkwareGetPublicKey(uint8_t p1,
 #endif  // NO_CONSENT
     {
         *tx = set_result_get_stark_publicKey();
-        THROW(0x9000);
+        THROW(APDU_SW_OK);
     }
 #ifndef NO_CONSENT
     else {

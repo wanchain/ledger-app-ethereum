@@ -27,7 +27,7 @@ bool eip712_context_init(void) {
     mem_init();
 
     if ((eip712_context = MEM_ALLOC_AND_ALIGN_TYPE(*eip712_context)) == NULL) {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_sw = APDU_SW_INSUFFICIENT_MEMORY;
         return false;
     }
 

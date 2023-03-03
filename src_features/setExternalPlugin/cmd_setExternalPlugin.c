@@ -24,14 +24,14 @@ void handleSetExternalPlugin(uint8_t p1,
 
     if (dataLength <= payload_size) {
         PRINTF("data too small: expected at least %d got %d\n", payload_size, dataLength);
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     if (pluginNameLength + 1 > sizeof(dataContext.tokenContext.pluginName)) {
         PRINTF("name length too big: expected max %d, got %d\n",
                sizeof(dataContext.tokenContext.pluginName),
                pluginNameLength + 1);
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     // check Ledger's signature over the payload
@@ -49,7 +49,7 @@ void handleSetExternalPlugin(uint8_t p1,
                          dataLength - payload_size)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid plugin signature %.*H\n", payload_size, workBuffer);
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
 #endif
     }
 

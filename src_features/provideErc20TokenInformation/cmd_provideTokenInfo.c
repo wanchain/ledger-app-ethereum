@@ -30,15 +30,15 @@ void handleProvideErc20TokenInformation(uint8_t p1,
         &tmpCtx.transactionContext.tokens[tmpCtx.transactionContext.currentItemIndex];
 
     if (dataLength < 1) {
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     tickerLength = workBuffer[offset++];
     dataLength--;
     if ((tickerLength + 2) >= sizeof(token->ticker)) {  // +2 because ' \0' is appended to ticker
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     if (dataLength < tickerLength + 1) {
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     cx_hash((cx_hash_t *) &sha256, 0, workBuffer + offset, tickerLength, NULL, 0);
     memmove(token->ticker, workBuffer + offset, tickerLength);
@@ -49,7 +49,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     contractNameLength = workBuffer[offset++];
     dataLength--;
     if (dataLength < contractNameLength + 20 + 4 + 4) {
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     cx_hash((cx_hash_t *) &sha256,
             CX_LAST,
@@ -73,7 +73,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     chainId = U4BE(workBuffer, offset);
     if ((chainConfig->chainId != 0) && (chainConfig->chainId != chainId)) {
         PRINTF("ChainId token mismatch\n");
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     offset += 4;
     dataLength -= 4;
@@ -90,11 +90,11 @@ void handleProvideErc20TokenInformation(uint8_t p1,
                          dataLength)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid token signature\n");
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
 #endif
     }
     tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
-    THROW(0x9000);
+    THROW(APDU_SW_OK);
 }
 
 #else
@@ -123,15 +123,15 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     PRINTF("Provisioning currentItemIndex %d\n", tmpCtx.transactionContext.currentItemIndex);
 
     if (dataLength < 1) {
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     tickerLength = workBuffer[offset++];
     dataLength--;
     if ((tickerLength + 1) >= sizeof(token->ticker)) {
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     if (dataLength < tickerLength + 20 + 4 + 4) {
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     cx_hash_sha256(workBuffer + offset, tickerLength + 20 + 4 + 4, hash, 32);
     memmove(token->ticker, workBuffer + offset, tickerLength);
@@ -147,7 +147,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
     chainId = U4BE(workBuffer, offset);
     if ((chainConfig->chainId != ETHEREUM_MAINNET_CHAINID) && (chainConfig->chainId != chainId)) {
         PRINTF("ChainId token mismatch: %d vs %d\n", chainConfig->chainId, chainId);
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     offset += 4;
     dataLength -= 4;
@@ -179,7 +179,7 @@ void handleProvideErc20TokenInformation(uint8_t p1,
                              dataLength)) {
 #ifndef HAVE_BYPASS_SIGNATURES
             PRINTF("Invalid token signature\n");
-            THROW(0x6A80);
+            THROW(APDU_SW_INVALID_DATA);
 #endif
         }
     }
@@ -199,13 +199,13 @@ void handleProvideErc20TokenInformation(uint8_t p1,
                          dataLength)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid token signature\n");
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
 #endif
     }
 #endif
 
     tmpCtx.transactionContext.tokenSet[tmpCtx.transactionContext.currentItemIndex] = 1;
-    THROW(0x9000);
+    THROW(APDU_SW_OK);
 }
 
 #endif

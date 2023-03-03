@@ -25,7 +25,7 @@ void handleSign(uint8_t p1,
         workBuffer = parseBip32(workBuffer, &dataLength, &tmpCtx.transactionContext.bip32);
 
         if (workBuffer == NULL) {
-            THROW(0x6a80);
+            THROW(APDU_SW_INVALID_DATA);
         }
 
         tmpContent.txContent.dataPresent = false;
@@ -35,7 +35,7 @@ void handleSign(uint8_t p1,
 
         if (dataLength < 1) {
             PRINTF("Invalid data\n");
-            THROW(0x6a80);
+            THROW(APDU_SW_INVALID_DATA);
         }
 
         // EIP 2718: TransactionType might be present before the TransactionPayload.
@@ -56,18 +56,18 @@ void handleSign(uint8_t p1,
         }
         PRINTF("TxType: %x\n", txContext.txType);
     } else if (p1 != P1_MORE) {
-        THROW(0x6B00);
+        THROW(APDU_SW_INVALID_P1_P2);
     }
     if (p2 != 0) {
-        THROW(0x6B00);
+        THROW(APDU_SW_INVALID_P1_P2);
     }
     if ((p1 == P1_MORE) && (appState != APP_STATE_SIGNING_TX)) {
         PRINTF("Signature not initialized\n");
-        THROW(0x6985);
+        THROW(APDU_SW_CONDITION_NOT_SATISFIED);
     }
     if (txContext.currentField == RLP_NONE) {
         PRINTF("Parser not initialized\n");
-        THROW(0x6985);
+        THROW(APDU_SW_CONDITION_NOT_SATISFIED);
     }
     txResult = processTx(&txContext,
                          workBuffer,
@@ -79,12 +79,12 @@ void handleSign(uint8_t p1,
         case USTREAM_FINISHED:
             break;
         case USTREAM_PROCESSING:
-            THROW(0x9000);
+            THROW(APDU_SW_OK);
         case USTREAM_FAULT:
-            THROW(0x6A80);
+            THROW(APDU_SW_INVALID_DATA);
         default:
             PRINTF("Unexpected parser status\n");
-            THROW(0x6A80);
+            THROW(APDU_SW_INVALID_DATA);
     }
 
     if (txResult == USTREAM_FINISHED) {

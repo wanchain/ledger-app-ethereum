@@ -51,7 +51,7 @@ strings_t strings;
 cx_sha3_t global_sha3;
 
 uint8_t appState;
-uint16_t apdu_response_code;
+uint16_t apdu_response_sw;
 bool called_from_swap;
 pluginType_t pluginType;
 #ifdef HAVE_STARKWARE
@@ -87,10 +87,38 @@ void reset_app_context() {
     memset((uint8_t *) &tmpContent, 0, sizeof(tmpContent));
 }
 
-void io_seproxyhal_send_status(uint32_t sw) {
-    G_io_apdu_buffer[0] = ((sw >> 8) & 0xff);
-    G_io_apdu_buffer[1] = (sw & 0xff);
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+/**
+ * Respond to the previous APDU command
+ *
+ * Uses the already set global \ref apdu_response_sw variable.
+ *
+ * @param[in] success whether the command was successful
+ * @param[in] data_size the size of the response data
+ */
+void send_apdu_response(bool success, uint8_t data_size) {
+    if (success) {
+        apdu_response_sw = APDU_SW_OK;
+    } else if (apdu_response_sw == APDU_SW_OK) {  // somehow not set
+        apdu_response_sw = APDU_SW_ERROR_NO_INFO;
+    }
+
+    U2BE_ENCODE(G_io_apdu_buffer, data_size, apdu_response_sw);
+
+    // Send back the response, do not restart the event loop
+    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, data_size + sizeof(apdu_response_sw));
+}
+
+/**
+ * Respond to the previous APDU command
+ *
+ * Explicitely sets the global \ref apdu_response_sw variable.
+ *
+ * @param[in] sw the response status word
+ * @param[in] data_size the size of the response data
+ */
+void send_apdu_response_explicit(uint16_t sw, uint8_t data_size) {
+    apdu_response_sw = sw;
+    send_apdu_response(apdu_response_sw == APDU_SW_OK, data_size);
 }
 
 void format_signature_out(const uint8_t *signature) {
@@ -496,7 +524,7 @@ void handleGetWalletId(volatile unsigned int *tx) {
     // ! cookie !
     memmove(G_io_apdu_buffer, t, 64);
     *tx = 64;
-    THROW(0x9000);
+    THROW(APDU_SW_OK);
 }
 
 #endif  // HAVE_WALLET_ID_SDK
@@ -583,7 +611,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                                                   tx);
                         break;
                     default:
-                        THROW(0x6D00);
+                        THROW(APDU_SW_INVALID_INS);
                         break;
                 }
                 CLOSE_TRY;
@@ -701,7 +729,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                             break;
 #endif  // HAVE_EIP712_FULL_SUPPORT
                         default:
-                            THROW(APDU_RESPONSE_INVALID_P1_P2);
+                            THROW(APDU_SW_INVALID_P1_P2);
                     }
                     break;
 
@@ -764,7 +792,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
 #endif
 
                 default:
-                    THROW(0x6D00);
+                    THROW(APDU_SW_INVALID_INS);
                     break;
             }
         }
@@ -778,7 +806,7 @@ void handleApdu(unsigned int *flags, unsigned int *tx) {
                     sw = e;
                     reset_app_context();
                     break;
-                case 0x9000:
+                case APDU_SW_OK:
                     // All is well
                     sw = e;
                     break;
@@ -852,7 +880,7 @@ void app_main(void) {
                         reset_app_context();
                         break;
                 }
-                if (e != 0x9000) {
+                if (e != APDU_SW_OK) {
                     flags &= ~IO_ASYNCH_REPLY;
                 }
                 // Unexpected exception => report

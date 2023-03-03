@@ -5,7 +5,7 @@
 #include "ethUtils.h"
 #include "uint256.h"
 #include "uint_common.h"
-
+#include "apdu_constants.h"
 #include "os_io_seproxyhal.h"
 
 #define SIGNATURE_MAX_LEN (72)
@@ -109,7 +109,7 @@ void shift_stark_hash(FieldElement hash) {
         write_u64_be(hash + 24, LOWER(LOWER_P((&final_hash256))));
         return;
     } else {
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 }
 

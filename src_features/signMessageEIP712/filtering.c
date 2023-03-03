@@ -74,7 +74,7 @@ static bool verify_filtering_signature(uint8_t dname_length,
             hash_byte(FILTERING_MAGIC_CONTRACT_NAME, (cx_hash_t *) &hash_ctx);
             break;
         default:
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_sw = APDU_SW_INVALID_DATA;
             PRINTF("Invalid filtering type when verifying signature!\n");
             return false;
     }
@@ -113,7 +113,7 @@ static bool verify_filtering_signature(uint8_t dname_length,
     if (!cx_ecdsa_verify(&verifying_key, CX_LAST, CX_SHA256, hash, sizeof(hash), sig, sig_length)) {
 #ifndef HAVE_BYPASS_SIGNATURES
         PRINTF("Invalid EIP-712 filtering signature\n");
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return false;
 #endif
     }
@@ -138,13 +138,13 @@ bool provide_filtering_info(const uint8_t *const payload, uint8_t length, e_filt
 
     if (type == FILTERING_PROVIDE_MESSAGE_INFO) {
         if (path_get_root_type() != ROOT_DOMAIN) {
-            apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
             return false;
         }
     } else  // FILTERING_SHOW_FIELD
     {
         if (path_get_root_type() != ROOT_MESSAGE) {
-            apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
             return false;
         }
     }

@@ -89,25 +89,6 @@ static s_domain_name_info g_domain_name_info;
 char domain_name[DOMAIN_NAME_MAX_LENGTH + 1];
 
 /**
- * Send a response APDU
- *
- * @param[in] success whether it should use \ref APDU_RESPONSE_OK
- * @param[in] off payload offset (0 if no data other than status word)
- */
-static void response_to_domain_name(bool success, uint8_t off) {
-    uint16_t sw;
-
-    if (success) {
-        sw = APDU_RESPONSE_OK;
-    } else {
-        sw = apdu_response_code;
-    }
-    U2BE_ENCODE(G_io_apdu_buffer, off, sw);
-
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, off + 2);
-}
-
-/**
  * Verify the domain name in memory with the given address and chain ID
  *
  * @param[in] chain_id given chain ID
@@ -340,7 +321,7 @@ static bool verify_signature(const s_sig_ctx *sig_ctx) {
             break;
         default:
             PRINTF("Error: Unknown metadata key ID %u\n", sig_ctx->key_id);
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_sw = APDU_SW_INVALID_DATA;
             return false;
     }
     if (!cx_ecdsa_verify(&verif_key,
@@ -352,7 +333,7 @@ static bool verify_signature(const s_sig_ctx *sig_ctx) {
                          sig_ctx->input_sig_size)) {
         PRINTF("Domain name signature verification failed!\n");
 #ifndef HAVE_BYPASS_SIGNATURES
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return false;
 #endif
     }
@@ -417,7 +398,7 @@ static bool parse_tlv(const s_tlv_payload *payload,
 
             case TLV_VALUE:
                 if (offset >= payload->size) {
-                    apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                    apdu_response_sw = APDU_SW_INVALID_DATA;
                     return false;
                 }
                 data.value = &payload->ptr[offset];
@@ -428,7 +409,7 @@ static bool parse_tlv(const s_tlv_payload *payload,
                         t_tlv_handler fptr = PIC(handlers[idx].func);
                         if (!(*fptr)(&data, domain_name_info, sig_ctx)) {
                             PRINTF("Error while handling tag 0x%x\n", handlers[idx].tag);
-                            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                            apdu_response_sw = APDU_SW_INVALID_DATA;
                             return false;
                         }
                         break;
@@ -442,7 +423,7 @@ static bool parse_tlv(const s_tlv_payload *payload,
                 break;
 
             default:
-                apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+                apdu_response_sw = APDU_SW_INVALID_DATA;
                 return false;
         }
     }
@@ -467,7 +448,7 @@ static bool parse_tlv(const s_tlv_payload *payload,
  */
 static bool set_payload(s_tlv_payload *payload, uint16_t size) {
     if ((payload->ptr = mem_alloc(size)) == NULL) {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_sw = APDU_SW_INSUFFICIENT_MEMORY;
         return false;
     }
     payload->expected_size = size;
@@ -488,17 +469,17 @@ static bool handle_first_chunk(const uint8_t **data, uint8_t *length, s_tlv_payl
     // check if no payload is already in memory
     if (payload->ptr != NULL) {
         unset_payload(payload);
-        apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
+        apdu_response_sw = APDU_SW_INVALID_P1_P2;
         return false;
     }
 
     // check if we at least get the size
     if (*length < sizeof(payload->expected_size)) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return false;
     }
     if (!set_payload(payload, U2BE(*data, 0))) {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_sw = APDU_SW_INSUFFICIENT_MEMORY;
         return false;
     }
 
@@ -522,22 +503,22 @@ void handle_provide_domain_name(uint8_t p1, uint8_t p2, const uint8_t *data, uin
     (void) p2;
     if (p1 == P1_FIRST_CHUNK) {
         if (!handle_first_chunk(&data, &length, &g_tlv_payload)) {
-            return response_to_domain_name(false, 0);
+            return send_apdu_response(false, 0);
         }
     } else {
         // check if a payload is already in memory
         if (g_tlv_payload.ptr == NULL) {
-            apdu_response_code = APDU_RESPONSE_INVALID_P1_P2;
-            return response_to_domain_name(false, 0);
+            apdu_response_sw = APDU_SW_INVALID_P1_P2;
+            return send_apdu_response(false, 0);
         }
     }
 
     if (g_tlv_payload.size < g_tlv_payload.expected_size) {
         if ((g_tlv_payload.size + length) > g_tlv_payload.expected_size) {
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_sw = APDU_SW_INVALID_DATA;
             unset_payload(&g_tlv_payload);
             PRINTF("TLV payload size mismatch!\n");
-            return response_to_domain_name(false, 0);
+            return send_apdu_response(false, 0);
         }
         // feed into tlv payload
         memcpy(g_tlv_payload.ptr + g_tlv_payload.size, data, length);
@@ -551,7 +532,7 @@ void handle_provide_domain_name(uint8_t p1, uint8_t p2, const uint8_t *data, uin
             !verify_signature(&sig_ctx)) {
             unset_payload(&g_tlv_payload);
             roll_challenge();  // prevent brute-force guesses
-            return response_to_domain_name(false, 0);
+            return send_apdu_response(false, 0);
         }
         g_domain_name_info.valid = true;
         PRINTF("Registered : %s => %.*h\n",
@@ -561,7 +542,7 @@ void handle_provide_domain_name(uint8_t p1, uint8_t p2, const uint8_t *data, uin
         unset_payload(&g_tlv_payload);
         roll_challenge();  // prevent replays
     }
-    return response_to_domain_name(true, 0);
+    return send_apdu_response(true, 0);
 }
 
 #endif  // HAVE_DOMAIN_NAME

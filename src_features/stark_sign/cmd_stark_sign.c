@@ -37,14 +37,14 @@ void handleStarkwareSignMessage(uint8_t p1,
 
     if (dataLength < 1) {
         PRINTF("Invalid data\n");
-        THROW(0x6a80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     bip32PathLength = *(dataBuffer);
 
     if ((bip32PathLength < 0x01) || (bip32PathLength > MAX_BIP32_PATH)) {
         PRINTF("Invalid path\n");
-        THROW(0x6a80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     switch (p1) {
         case P1_STARK_ORDER:
@@ -61,7 +61,7 @@ void handleStarkwareSignMessage(uint8_t p1,
             order = 0;
             break;
         default:
-            THROW(0x6B00);
+            THROW(APDU_SW_INVALID_P1_P2);
     }
     postOffset = (protocol == 2 ? 1 + 32 : 0);
     preOffset = (protocol == 2 ? 1 : 0);
@@ -77,7 +77,7 @@ void handleStarkwareSignMessage(uint8_t p1,
         }
     }
     if (p2 != 0) {
-        THROW(0x6B00);
+        THROW(APDU_SW_INVALID_P1_P2);
     }
     tmpCtx.transactionContext.bip32.length = bip32PathLength;
     for (i = 0; i < bip32PathLength; i++) {
@@ -103,24 +103,24 @@ void handleStarkwareSignMessage(uint8_t p1,
     if (zeroTest && (protocol == 2) && (dataBuffer[0] != STARK_QUANTUM_ETH)) {
         PRINTF("stark - unexpected quantum descriptor type for null first address %d\n",
                dataBuffer[0]);
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     if (!zeroTest && getKnownToken(dataBuffer + preOffset) == NULL) {
         PRINTF("stark - cannot process unknown token %.*H", 20, dataBuffer + preOffset);
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
     if (order) {
         zeroTest = allzeroes(dataBuffer + 20 + 32 + postOffset + preOffset, 20);
         if (zeroTest && (protocol == 2) && (dataBuffer[1 + 20 + 32 + 32] != STARK_QUANTUM_ETH)) {
             PRINTF("stark - unexpected quantum descriptor type for null second address %d\n",
                    dataBuffer[1 + 20 + 32 + 32]);
-            THROW(0x6A80);
+            THROW(APDU_SW_INVALID_DATA);
         }
         if (!zeroTest && getKnownToken(dataBuffer + 20 + 32 + postOffset + preOffset) == NULL) {
             PRINTF("stark - cannot process unknown token %.*H",
                    20,
                    dataBuffer + 20 + 32 + postOffset + preOffset);
-            THROW(0x6A80);
+            THROW(APDU_SW_INVALID_DATA);
         }
     }
     // Prepare the Stark parameters

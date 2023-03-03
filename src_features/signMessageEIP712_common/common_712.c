@@ -4,6 +4,7 @@
 #include "common_712.h"
 #include "ui_callbacks.h"
 #include "common_ui.h"
+#include "apdu_constants.h"
 
 static const uint8_t EIP_712_MAGIC[] = {0x19, 0x01};
 
@@ -12,7 +13,6 @@ unsigned int ui_712_approve_cb() {
     uint8_t hash[INT256_LENGTH];
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
-    uint32_t tx = 0;
 
     io_seproxyhal_io_heartbeat();
     cx_keccak_init(&global_sha3, 256);
@@ -64,12 +64,8 @@ unsigned int ui_712_approve_cb() {
         G_io_apdu_buffer[0] += 2;
     }
     format_signature_out(signature);
-    tx = 65;
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
     reset_app_context();
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    send_apdu_response(true, 65);
     // Display back the original UX
     ui_idle();
     return 0;  // do not redraw the widget
@@ -77,10 +73,7 @@ unsigned int ui_712_approve_cb() {
 
 unsigned int ui_712_reject_cb() {
     reset_app_context();
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    send_apdu_response_explicit(APDU_SW_CONDITION_NOT_SATISFIED, 0);
     // Display back the original UX
     ui_idle();
     return 0;  // do not redraw the widget

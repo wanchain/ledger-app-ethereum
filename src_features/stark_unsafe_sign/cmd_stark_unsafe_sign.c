@@ -22,13 +22,13 @@ void handleStarkwareUnsafeSign(uint8_t p1,
     }
 
     if ((p1 != 0) || (p2 != 0)) {
-        THROW(0x6B00);
+        THROW(APDU_SW_INVALID_P1_P2);
     }
 
     dataBuffer = parseBip32(dataBuffer, &dataLength, &tmpCtx.transactionContext.bip32);
 
     if (dataBuffer == NULL) {
-        THROW(0x6a80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     if (dataLength != 32) {

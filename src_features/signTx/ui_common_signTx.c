@@ -2,12 +2,12 @@
 #include "shared_context.h"
 #include "utils.h"
 #include "common_ui.h"
+#include "apdu_constants.h"
 
 unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_element_t *e) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
-    uint32_t tx = 0;
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
                                tmpCtx.transactionContext.bip32.path,
@@ -56,11 +56,7 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
         }
     }
     format_signature_out(signature);
-    tx = 65;
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    send_apdu_response(true, 65);
     if (called_from_swap) {
         os_sched_exit(0);
     }
@@ -72,10 +68,7 @@ unsigned int io_seproxyhal_touch_tx_ok(__attribute__((unused)) const bagl_elemen
 
 unsigned int io_seproxyhal_touch_tx_cancel(__attribute__((unused)) const bagl_element_t *e) {
     reset_app_context();
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    send_apdu_response_explicit(APDU_SW_CONDITION_NOT_SATISFIED, 0);
     // Display back the original UX
     ui_idle();
     return 0;  // do not redraw the widget
@@ -90,18 +83,18 @@ unsigned int io_seproxyhal_touch_data_ok(__attribute__((unused)) const bagl_elem
         case USTREAM_FINISHED:
             break;
         case USTREAM_PROCESSING:
-            io_seproxyhal_send_status(0x9000);
+            send_apdu_response(true, 0);
             ui_idle();
             break;
         case USTREAM_FAULT:
             reset_app_context();
-            io_seproxyhal_send_status(0x6A80);
+            send_apdu_response_explicit(APDU_SW_INVALID_DATA, 0);
             ui_idle();
             break;
         default:
             PRINTF("Unexpected parser status\n");
             reset_app_context();
-            io_seproxyhal_send_status(0x6A80);
+            send_apdu_response_explicit(APDU_SW_INVALID_DATA, 0);
             ui_idle();
     }
 
@@ -114,7 +107,7 @@ unsigned int io_seproxyhal_touch_data_ok(__attribute__((unused)) const bagl_elem
 
 unsigned int io_seproxyhal_touch_data_cancel(__attribute__((unused)) const bagl_element_t *e) {
     reset_app_context();
-    io_seproxyhal_send_status(0x6985);
+    send_apdu_response_explicit(APDU_SW_CONDITION_NOT_SATISFIED, 0);
     // Display back the original UX
     ui_idle();
     return 0;  // do not redraw the widget

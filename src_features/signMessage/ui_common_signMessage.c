@@ -1,11 +1,11 @@
 #include "os_io_seproxyhal.h"
 #include "common_ui.h"
+#include "apdu_constants.h"
 
 unsigned int io_seproxyhal_touch_signMessage_ok(void) {
     uint8_t privateKeyData[INT256_LENGTH];
     uint8_t signature[100];
     cx_ecfp_private_key_t privateKey;
-    uint32_t tx = 0;
     io_seproxyhal_io_heartbeat();
     os_perso_derive_node_bip32(CX_CURVE_256K1,
                                tmpCtx.messageSigningContext.bip32.path,
@@ -34,12 +34,8 @@ unsigned int io_seproxyhal_touch_signMessage_ok(void) {
         G_io_apdu_buffer[0] += 2;
     }
     format_signature_out(signature);
-    tx = 65;
-    G_io_apdu_buffer[tx++] = 0x90;
-    G_io_apdu_buffer[tx++] = 0x00;
     reset_app_context();
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, tx);
+    send_apdu_response(true, 65);
     // Display back the original UX
     ui_idle();
     return 0;  // do not redraw the widget
@@ -47,10 +43,7 @@ unsigned int io_seproxyhal_touch_signMessage_ok(void) {
 
 unsigned int io_seproxyhal_touch_signMessage_cancel(void) {
     reset_app_context();
-    G_io_apdu_buffer[0] = 0x69;
-    G_io_apdu_buffer[1] = 0x85;
-    // Send back the response, do not restart the event loop
-    io_exchange(CHANNEL_APDU | IO_RETURN_AFTER_TX, 2);
+    send_apdu_response_explicit(APDU_SW_CONDITION_NOT_SATISFIED, 0);
     // Display back the original UX
     ui_idle();
     return 0;  // do not redraw the widget

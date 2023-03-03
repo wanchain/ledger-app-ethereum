@@ -35,7 +35,7 @@ void handlePerformPrivacyOperation(uint8_t p1,
     cx_err_t status = CX_OK;
 
     if ((p1 != P1_CONFIRM) && (p1 != P1_NON_CONFIRM)) {
-        THROW(0x6B00);
+        THROW(APDU_SW_INVALID_P1_P2);
     }
 
     if ((p2 != P2_PUBLIC_ENCRYPTION_KEY) && (p2 != P2_SHARED_SECRET)) {
@@ -45,7 +45,7 @@ void handlePerformPrivacyOperation(uint8_t p1,
     dataBuffer = parseBip32(dataBuffer, &dataLength, &bip32);
 
     if (dataBuffer == NULL) {
-        THROW(0x6a80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
     if ((p2 == P2_SHARED_SECRET) && (dataLength < 32)) {
@@ -82,7 +82,7 @@ void handlePerformPrivacyOperation(uint8_t p1,
     explicit_bzero(privateKeyData, sizeof(privateKeyData));
 
     if (status != CX_OK) {
-        THROW(0x6A80);
+        THROW(APDU_SW_INVALID_DATA);
     }
 
 #ifndef NO_CONSENT
@@ -90,7 +90,7 @@ void handlePerformPrivacyOperation(uint8_t p1,
 #endif  // NO_CONSENT
     {
         *tx = set_result_perform_privacy_operation();
-        THROW(0x9000);
+        THROW(APDU_SW_OK);
     }
 #ifndef NO_CONSENT
     else {

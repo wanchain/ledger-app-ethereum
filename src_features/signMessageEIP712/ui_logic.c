@@ -123,7 +123,7 @@ e_eip712_nfs ui_712_next_field(void) {
     e_eip712_nfs state = EIP712_NO_MORE_FIELD;
 
     if (ui_ctx == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
     } else {
         if (ui_ctx->structs_to_review > 0) {
             ui_712_review_struct(path_get_nth_field_to_last(ui_ctx->structs_to_review));
@@ -194,7 +194,7 @@ static void ui_712_format_str(const uint8_t *const data, uint8_t length) {
  */
 static bool ui_712_format_addr(const uint8_t *const data, uint8_t length) {
     if (length != ADDRESS_LENGTH) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return false;
     }
     if (ui_712_field_shown()) {
@@ -220,7 +220,7 @@ static bool ui_712_format_bool(const uint8_t *const data, uint8_t length) {
     const char *str;
 
     if (length != 1) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return false;
     }
     str = *data ? true_str : false_str;
@@ -313,7 +313,7 @@ static bool ui_712_format_int(const uint8_t *const data,
             break;
         default:
             PRINTF("Unhandled field typesize\n");
-            apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+            apdu_response_sw = APDU_SW_INVALID_DATA;
             return false;
     }
     return true;
@@ -346,13 +346,13 @@ bool ui_712_new_field(const void *const field_ptr, const uint8_t *const data, ui
     uint8_t key_len;
 
     if (ui_ctx == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
         return false;
     }
 
     // Key
     if ((key = get_struct_field_keyname(field_ptr, &key_len)) == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
         return false;
     }
 
@@ -405,7 +405,7 @@ bool ui_712_new_field(const void *const field_ptr, const uint8_t *const data, ui
  */
 void ui_712_end_sign(void) {
     if (ui_ctx == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
         return;
     }
     ui_ctx->end_reached = true;
@@ -424,7 +424,7 @@ bool ui_712_init(void) {
         ui_ctx->end_reached = false;
         ui_ctx->filtering_mode = EIP712_FILTERING_BASIC;
     } else {
-        apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+        apdu_response_sw = APDU_SW_INSUFFICIENT_MEMORY;
     }
     return ui_ctx != NULL;
 }

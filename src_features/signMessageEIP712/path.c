@@ -231,11 +231,11 @@ static bool array_depth_list_push(uint8_t path_idx, uint8_t size) {
     s_array_depth *arr;
 
     if (path_struct == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
         return false;
     }
     if (path_struct->array_depth_count == MAX_ARRAY_DEPTH) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
         return false;
     }
 
@@ -324,7 +324,7 @@ bool path_set_root(const char *const struct_name, uint8_t name_length) {
     uint8_t hash[KECCAK256_HASH_BYTESIZE];
 
     if (path_struct == NULL) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return false;
     }
 
@@ -336,7 +336,7 @@ bool path_set_root(const char *const struct_name, uint8_t name_length) {
             PRINTF("%c", struct_name[i]);
         }
         PRINTF(")!\n");
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return false;
     }
 
@@ -396,7 +396,7 @@ static bool check_and_add_array_depth(const void *depth,
     }
     expected_type = struct_field_array_depth(depth, &expected_size);
     if ((expected_type == ARRAY_FIXED_SIZE) && (expected_size != size)) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         PRINTF("Unexpected array depth size. (expected %d, got %d)\n", expected_size, size);
         return false;
     }
@@ -423,21 +423,21 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     bool is_custom;
 
     if (path_struct == NULL) {
-        apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+        apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
         return false;
     } else if (length != 1) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         return false;
     }
 
     for (pidx = 0; pidx < path_struct->depth_count; ++pidx) {
         if ((field_ptr = get_nth_field(NULL, pidx + 1)) == NULL) {
-            apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+            apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
             return false;
         }
         if (struct_field_is_array(field_ptr)) {
             if ((depth = get_struct_field_array_lvls_array(field_ptr, &depth_count)) == NULL) {
-                apdu_response_code = APDU_RESPONSE_CONDITION_NOT_SATISFIED;
+                apdu_response_sw = APDU_SW_CONDITION_NOT_SATISFIED;
                 return false;
             }
             total_count += depth_count;
@@ -451,7 +451,7 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     }
 
     if (pidx == path_struct->depth_count) {
-        apdu_response_code = APDU_RESPONSE_INVALID_DATA;
+        apdu_response_sw = APDU_SW_INVALID_DATA;
         PRINTF("Did not find a matching array type.\n");
         return false;
     }
@@ -590,7 +590,7 @@ uint8_t path_get_depth_count(void) {
 bool path_init(void) {
     if (path_struct == NULL) {
         if ((path_struct = MEM_ALLOC_AND_ALIGN_TYPE(*path_struct)) == NULL) {
-            apdu_response_code = APDU_RESPONSE_INSUFFICIENT_MEMORY;
+            apdu_response_sw = APDU_SW_INSUFFICIENT_MEMORY;
         } else {
             path_struct->depth_count = 0;
         }
