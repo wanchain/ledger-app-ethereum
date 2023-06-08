@@ -9,6 +9,7 @@ char staxSharedBuffer[SHARED_BUFFER_SIZE] = {0};
 nbgl_page_t *pageContext;
 
 #define FORMAT_PLUGIN "This app enables clear\nsigning transactions for\nthe %s dApp."
+#define MAX_APP_NAME_FOR_LOCAL_TAGLINE SHARED_BUFFER_SIZE - 1 - (sizeof(TAGLINE_PART1) + sizeof(TAGLINE_PART2))
 
 void releaseContext(void) {
     if (pageContext != NULL) {
@@ -44,6 +45,12 @@ void ui_idle(void) {
 
         if (caller_app->type == CALLER_TYPE_PLUGIN) {
             snprintf(staxSharedBuffer, sizeof(staxSharedBuffer), FORMAT_PLUGIN, app_name);
+            tagline = staxSharedBuffer;
+        }
+        // If app_name is too long to fit the sdk buffer we must declare it locally in the app.
+        // If it is too long to fit in the shared buffer, the SDK will use a default value.
+        else if (strlen(app_name) > MAX_APP_NAME_FOR_SDK_TAGLINE && strlen(app_name) < MAX_APP_NAME_FOR_LOCAL_TAGLINE) {
+            snprintf(staxSharedBuffer, sizeof(staxSharedBuffer), "%s\n%s %s", TAGLINE_PART1, app_name, TAGLINE_PART2);
             tagline = staxSharedBuffer;
         }
     } else {  // Ethereum app
