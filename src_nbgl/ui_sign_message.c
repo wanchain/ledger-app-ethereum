@@ -35,7 +35,7 @@ static void sign_message(void) {
     io_seproxyhal_touch_signMessage_ok();
 }
 
-static bool display_message(nbgl_pageContent_t *content) {
+bool display_message(nbgl_pageContent_t *content) {
     uint16_t len = 0;
     bool reached;
 
@@ -43,7 +43,7 @@ static bool display_message(nbgl_pageContent_t *content) {
         strncpy(g_stax_shared_buffer + eip191MessageIdx,
                 strings.tmp.tmp + stringsTmpTmpIdx,
                 SHARED_BUFFER_SIZE - eip191MessageIdx);
-        reached = nbgl_getTextMaxLenInNbLines(BAGL_FONT_INTER_MEDIUM_32px,
+        reached = nbgl_getTextMaxLenInNbLines(LARGE_MEDIUM_FONT,
                                               (char *) g_stax_shared_buffer,
                                               SCREEN_WIDTH - (2 * BORDER_MARGIN),
                                               NB_MAX_LINES_IN_REVIEW,
