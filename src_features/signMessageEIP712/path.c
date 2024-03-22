@@ -308,7 +308,8 @@ static bool path_update(bool skip_if_array, bool stop_at_array) {
     while (struct_field_type(field_ptr) == TYPE_CUSTOM) {
         if (((field_ptr == starting_field_ptr) && skip_if_array) ||
             ((field_ptr != starting_field_ptr) && stop_at_array)) {
-            if (struct_field_is_array(field_ptr)) {
+            if ((path_struct->array_depths[path_struct->array_depth_count - 1].index == 0) &&
+                struct_field_is_array(field_ptr)) {
                 break;
             }
         }
@@ -323,11 +324,15 @@ static bool path_update(bool skip_if_array, bool stop_at_array) {
         if (push_new_hash_depth(true) == false) {
             return false;
         }
-        // get the struct typehash
-        if (type_hash(typename, typename_len, hash) == false) {
-            return false;
+
+        // The only times they are both at false is if we are traversing an empty array
+        if ((skip_if_array != false) || (stop_at_array != false)) {
+            // get the struct typehash
+            if (type_hash(typename, typename_len, hash) == false) {
+                return false;
+            }
+            feed_last_hash_depth(hash);
         }
-        feed_last_hash_depth(hash);
 
         // TODO: Find a better way to show inner structs in verbose mode when it might be
         //       an empty array of structs in which case we don't want to show it but the
@@ -506,7 +511,7 @@ bool path_new_array_depth(const uint8_t *const data, uint8_t length) {
     if (array_size == 0) {
         do {
             path_advance(false);
-        } while (path_struct->array_depth_count != array_depth_count_bak);
+        } while (path_struct->array_depth_count > array_depth_count_bak);
     }
 
     return true;
