@@ -21,6 +21,7 @@ class StatusWord(IntEnum):
     INVALID_P1_P2 = 0x6b00
     CONDITION_NOT_SATISFIED = 0x6985
     REF_DATA_NOT_FOUND = 0x6a88
+    EXCEPTION_OVERFLOW = 0x6807
 
 
 class DomainNameTag(IntEnum):
@@ -48,6 +49,15 @@ class EthAppClient:
 
     def response(self) -> Optional[RAPDU]:
         return self._client.last_async_response
+
+    def send_raw(self, cla: int, ins: int, p1: int, p2: int, payload: bytes):
+        header = bytearray()
+        header.append(cla)
+        header.append(ins)
+        header.append(p1)
+        header.append(p2)
+        header.append(len(payload))
+        return self._exchange(header + payload)
 
     def eip712_send_struct_def_struct_name(self, name: str):
         return self._exchange_async(self._cmd_builder.eip712_send_struct_def_struct_name(name))
