@@ -294,7 +294,7 @@ signed by the following secp256k1 public key 045e6c1020c14dc46442fe89f97c0b68cdb
 
 'Output data'
 
-None
+Token index where the information has been stored.
 
 
 ### SIGN ETH EIP 712
@@ -825,10 +825,26 @@ The signature is computed on :
 
 183 || chain ID (BE) || contract address || schema hash || filters count || display name
 
+##### Token address check
 
-##### Show field
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The first byte is used so that a signature of one type cannot be valid as another type.
 
-These commands should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+The signature is computed on :
+
+11 || chain ID (BE) || contract address || schema hash || field path || token index
+
+##### Show amount
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
+
+The signature is computed on :
+
+22 || chain ID (BE) || contract address || schema hash || field path || display name || token index
+
+##### Show raw field
+
+This command should come before the corresponding *SEND STRUCT IMPLEMENTATION* and are only usable for message fields (and not domain ones).
 The first byte is used so that a signature of one type cannot be valid as another type.
 
 The signature is computed on :
@@ -843,17 +859,21 @@ _Command_
 |=========================================================================
 | *CLA* | *INS*  | *P1*               | *P2*       | *LC*     | *Le*
 |   E0  |   1E   | 00
-                                      | 00 : activate
+                                      | 00 : activation
 
                                         0F : message info
 
-                                        FF : show field
+                                        FD : token address check
+
+                                        FE : show amount
+
+                                        FF : show raw field
                                                    | variable | variable
 |=========================================================================
 
 _Input data_
 
-##### If P2 == activate
+##### If P2 == activation
 
 None
 
@@ -869,7 +889,29 @@ None
 | Signature             | variable
 |==========================================
 
-##### If P2 == show field
+##### If P2 == token address check
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Token index           | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == show amount
+
+[width="80%"]
+|==========================================
+| *Description*         | *Length (byte)*
+| Display name length   | 1
+| Display name          | variable
+| Token index           | 1
+| Signature length      | 1
+| Signature             | variable
+|==========================================
+
+##### If P2 == show raw field
 
 [width="80%"]
 |==========================================
