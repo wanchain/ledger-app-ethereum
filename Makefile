@@ -67,7 +67,7 @@ DEFINES += $(DEFINES_LIB)
 #prepare hsm generation
 ifeq ($(TARGET_NAME),TARGET_NANOS)
     ICONNAME = icons/nanos_app_chain_$(CHAIN_ID).gif
-else ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_EUROPA))
+else ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     ICONNAME = icons/stax_app_chain_$(CHAIN_ID).gif
     DEFINES += ICONGLYPH=C_stax_chain_$(CHAIN_ID)_64px
     DEFINES += ICONBITMAP=C_stax_chain_$(CHAIN_ID)_64px_bitmap
@@ -104,7 +104,7 @@ DEFINES += APPVERSION=\"$(APPVERSION)\"
 
 DEFINES += HAVE_WEBUSB WEBUSB_URL_SIZE_B=0 WEBUSB_URL=""
 
-ifneq (,$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_EUROPA))
+ifneq (,$(filter $(TARGET_NAME),TARGET_NANOX TARGET_STAX TARGET_FLEX))
     DEFINES += HAVE_BLE BLE_COMMAND_TIMEOUT_MS=2000
     DEFINES += HAVE_BLE_APDU # basic ledger apdu transport over BLE
     SDK_SOURCE_PATH += lib_blewbxx lib_blewbxx_impl
@@ -116,7 +116,7 @@ else
     DEFINES += IO_SEPROXYHAL_BUFFER_SIZE_B=300
 endif
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_EUROPA))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     DEFINES += NBGL_QRCODE
     SDK_SOURCE_PATH += qrcode
 else
@@ -259,7 +259,7 @@ include $(BOLOS_SDK)/Makefile.glyphs
 ### variables processed by the common makefile.rules of the SDK to grab source files and include dirs
 APP_SOURCE_PATH += src_common src src_features src_plugins
 SDK_SOURCE_PATH += lib_stusb lib_stusb_impl lib_u2f
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_EUROPA))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
     APP_SOURCE_PATH += src_nbgl
 else
     SDK_SOURCE_PATH += lib_ux
@@ -306,7 +306,7 @@ test: install_tests run_tests
 unit-test:
 	make -C tests/unit
 
-ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_EUROPA))
+ifeq ($(TARGET_NAME),$(filter $(TARGET_NAME),TARGET_STAX TARGET_FLEX))
 NETWORK_ICONS_FILE = $(GEN_SRC_DIR)/net_icons.gen.c
 NETWORK_ICONS_DIR = $(shell dirname "$(NETWORK_ICONS_FILE)")
 
