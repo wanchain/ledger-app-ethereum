@@ -163,8 +163,9 @@ If you have a suggestion that would make this better, please fork the repo and c
 
 Please try to follow [Conventional Commits](https://www.conventionalcommits.org/en/v1.0.0/).
 
-#### Loading on a physical device
-This step will vary slightly depending on your platform.
+## Loading wanchain app and ethereum app on a physical device
+
+This step will vary slightly depending on your platform. 
 
 ℹ️ Your physical device must be connected, unlocked and the screen showing the dashboard (not inside an application).
 
@@ -172,13 +173,13 @@ Linux (Ubuntu)
 
 First make sure you have the proper udev rules added on your host :
 
-# Run these commands on your host, from the app's source folder.
+### Run these commands on your host, from the app's source folder.
 sudo cp .vscode/20-ledger.ledgerblue.rules /etc/udev/rules.d/
 sudo udevadm control --reload-rules 
 sudo udevadm trigger
 Then once you have opened a terminal in the app-builder image and built the app for the device you want, run the following command :
 
-# Run this command from the app-builder container terminal.
+### Run this command from the app-builder container terminal.
 make load    # load the app on a Nano S by default
 Setting the BOLOS_SDK environment variable will allow you to load on whichever supported device you want.
 
@@ -188,16 +189,17 @@ macOS / Windows (with PowerShell)
 
 Run these commands on your host from the app's source folder once you have built the app for the device you want :
 
-# Install Python virtualenv
+### Install Python virtualenv
 python3 -m pip install virtualenv 
-# Create the 'ledger' virtualenv
+### Create the 'ledger' virtualenv
 python3 -m virtualenv ledger
 Enter the Python virtual environment
 
 macOS : source ledger/bin/activate
 Windows : .\ledger\Scripts\Activate.ps1
-# Install Ledgerblue (tool to load the app)
+### Install Ledgerblue (tool to load the app)
 python3 -m pip install ledgerblue 
-# Load the app.
-python3 -m ledgerblue.runScript --scp --fileName bin/app.apdu --elfFile bin/app.elf
+### Load the app.
+python3 -m ledgerblue.runScript --scp --fileName bin/app_eth.apdu --elfFile bin/app_eth.elf  #please replace the "bin/app_eth.apdu" with your app path
+python3 -m ledgerblue.runScript --scp --fileName bin/app_wan.apdu --elfFile bin/app_wan.elf
 
