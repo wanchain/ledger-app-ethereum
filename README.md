@@ -201,5 +201,6 @@ Windows : .\ledger\Scripts\Activate.ps1
 python3 -m pip install ledgerblue 
 ### Load the app.
 python3 -m ledgerblue.runScript --scp --fileName bin/app_eth.apdu --elfFile bin/app_eth.elf  #please replace the "bin/app_eth.apdu" with your app path
+
 python3 -m ledgerblue.runScript --scp --fileName bin/app_wan.apdu --elfFile bin/app_wan.elf
 
